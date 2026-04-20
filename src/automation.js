@@ -336,7 +336,19 @@ class FacebookAutoBot {
                                         hasMatchingText = articleHtml.replace(/[\n\r]+/g, ' ').replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').includes(searchText);
                                     }
 
-                                    if (hasNewTime && hasMatchingText) {
+                                    // Ưu tiên nã thẳng vào khớp định dạng text (Vì FB cập nhật thường giấu cả giờ đăng)
+                                    // Nếu ko có text (vài chữ), thì mới ngó sang Thời gian.
+                                    const isMatch = (searchText.length > 5 && hasMatchingText) || (searchText.length <= 5 && hasNewTime);
+
+                                    if (isMatch) {
+                                        // 1. Phá đảo bằng cách click trực tiếp vào lõi thẻ Video 💥
+                                        const videos = article.querySelectorAll('video');
+                                        if (videos.length > 0) {
+                                            videos[0].click();
+                                            return true;
+                                        }
+
+                                        // 2. Click vào link thời gian nếu không thấy lõi video
                                         const timeLinks = Array.from(article.querySelectorAll('a[role="link"]'));
                                         for (let link of timeLinks) {
                                             const t = (link.innerText || '').toLowerCase();
@@ -346,28 +358,37 @@ class FacebookAutoBot {
                                             }
                                         }
 
-                                        const clickableMedia = article.querySelectorAll('img, video, a');
-                                        if (clickableMedia.length > 0) {
-                                            clickableMedia[0].click();
-                                            return true;
+                                        // 3. Quét link sạch trỏ về bài đăng (loại bỏ click nhầm vô avatar Page)
+                                        const allLinks = Array.from(article.querySelectorAll('a'));
+                                        for (let link of allLinks) {
+                                            const href = link.href || '';
+                                            if (href.includes('/videos/') || href.includes('/watch') || href.includes('/posts/') || href.includes('/permalink/')) {
+                                                link.click();
+                                                return true;
+                                            }
                                         }
 
-                                        article.click();
-                                        return true;
+                                        // Cuối cùng: Click vật lý thả bom vào giữa bụng bài viết
+                                        const rect = article.getBoundingClientRect();
+                                        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 + 100 };
                                     }
                                 }
                                 return false;
                             }, pureText);
 
                             if (postUrlClicked) {
+                                if (typeof postUrlClicked === 'object' && postUrlClicked.x && postUrlClicked.y) {
+                                    await this.page.mouse.click(postUrlClicked.x, postUrlClicked.y);
+                                    console.log("-> Bắn click tọa độ vật lý vào Video!");
+                                }
                                 console.log("-> ĐÃ MỞ BÀI ĐĂNG TỪ FEED NGON LÀNH!");
                                 await this.page.waitForTimeout(6000);
                                 break;
                             }
 
-                            // Lăn chuột xuyên qua Bài Ghim
-                            await this.page.mouse.wheel(0, 900);
-                            await this.page.waitForTimeout(2500);
+                            // Lăn chuột nhẹ nhàng hơn xuyên qua Bài Ghim, chống giật màn hình
+                            await this.page.mouse.wheel(0, 400);
+                            await this.page.waitForTimeout(3500);
                         }
                     }
 
@@ -589,7 +610,13 @@ class FacebookAutoBot {
 
         try {
             const apiKeysArray = apiKey.split('\n').map(k => k.trim()).filter(k => k.length > 0);
-            let currentKeyIndex = 0;
+            if (typeof global.savedApiIndex === 'undefined') global.savedApiIndex = 0;
+            if (global.savedApiIndex >= apiKeysArray.length || global.savedApiIndex < 0) {
+                global.savedApiIndex = 0;
+            }
+            
+            let currentKeyIndex = global.savedApiIndex;
+            console.log(`[HỆ THỐNG API] Bắt đầu lấy API ở vị trí đã lưu: Key thứ ${currentKeyIndex + 1}`);
             let currentGenAI = apiKeysArray.length > 0 ? new GoogleGenerativeAI(apiKeysArray[currentKeyIndex]) : null;
             let isAIAlive = apiKeysArray.length > 0;
 
@@ -605,6 +632,10 @@ class FacebookAutoBot {
                         try {
                             const tempModel = currentGenAI.getGenerativeModel({ model: mName });
                             const res = await tempModel.generateContent(promptData);
+                            // LƯU NGAY VỊ TRÍ ĐỂ CHUYỂN SANG KEY MỚI SAN SẺ TẢI TIẾP THEO THEO CHU CHÌNH VÒNG TRÒN
+                            currentKeyIndex = (currentKeyIndex + 1) % apiKeysArray.length;
+                            global.savedApiIndex = currentKeyIndex;
+                            currentGenAI = new GoogleGenerativeAI(apiKeysArray[currentKeyIndex]);
                             return res;
                         } catch (err) {
                             lastErr = err;
@@ -620,6 +651,7 @@ class FacebookAutoBot {
                     // Nếu đến đây tức là Key hiện tại oẳng (oẳng model hoặc sập ngạch)
                     console.log(`=> Đang nạp API Key dự phòng...`);
                     currentKeyIndex = (currentKeyIndex + 1) % apiKeysArray.length;
+                    global.savedApiIndex = currentKeyIndex; // Cập nhật lại vào bộ nhớ rễ
                     currentGenAI = new GoogleGenerativeAI(apiKeysArray[currentKeyIndex]);
 
                     // Nếu đã thử hết mảng API Key mà vẫn xịt
@@ -788,8 +820,48 @@ class FacebookAutoBot {
                             // Đợi xíu tầm 2 giây cho Reel nạp Text (tên, tiêu đề, caption)
                             await this._checkStateAndDelay(this.page, 2000);
 
-                            // --- MỚI: QUÉT CHỦ ĐỀ BẰNG AI VISION LÊN HÌNH ẢNH TRƯỚC KHI XEM ---
+                            // --- MỞ RỘNG BÌNH LUẬN ĐỂ BUNG CAPTION TEXT VÀ HASHTAG TRƯỚC KHI CHỤP ẢNH MÀN HÌNH ---
+                            console.log("Đang mở phần bình luận kiểm tra để bung nội dung Caption...");
+                            const isPanelAlreadyOpenPrior = await this.page.evaluate(() => {
+                                const textboxes = Array.from(document.querySelectorAll('div[role="textbox"][contenteditable="true"]'));
+                                const cY = window.innerHeight / 2;
+                                for (let t of textboxes) {
+                                    const r = t.getBoundingClientRect();
+                                    if (r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight) {
+                                        const lbl = (t.getAttribute('aria-label') || '').toLowerCase();
+                                        if (!lbl.includes('tìm kiếm') && !lbl.includes('search')) {
+                                            const d = Math.abs(cY - (r.top + r.height / 2));
+                                            if (d < 600) return true; // Nằm an toàn trong vùng nhìn thấy
+                                        }
+                                    }
+                                }
+                                return false;
+                            });
 
+                            if (!isPanelAlreadyOpenPrior) {
+                                const clicked = await this.page.evaluate(() => {
+                                    const btns = Array.from(document.querySelectorAll('div[aria-label="Bình luận"], div[aria-label="Comment"], i[data-visualcompletion="css-img"]'));
+                                    let closest = null; let minD = Infinity; const cY = window.innerHeight / 2;
+                                    for (let b of btns) {
+                                        const lbl = (b.getAttribute('aria-label') || '').toLowerCase();
+                                        if (b.tagName === 'I' && !b.className.includes('comment')) continue;
+                                        const r = b.getBoundingClientRect();
+                                        if (r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight) {
+                                            const d = Math.abs(cY - (r.top + r.height / 2));
+                                            if (d < minD) { minD = d; closest = b; }
+                                        }
+                                    }
+                                    if (closest) { closest.click(); return true; }
+                                    return false;
+                                });
+
+                                if (clicked) {
+                                    // Chờ thêm 3s cho khay giao diện trượt ra hoàn thiện
+                                    await this._checkStateAndDelay(this.page, 3000);
+                                }
+                            }
+
+                            // --- QUÉT CHỦ ĐỀ BẰNG AI VISION LÊN HÌNH ẢNH SAU KHI ĐÃ ĐẦY ĐỦ THÔNG TIN ---
                             // Kiểm tra xem Video có đúng chủ đề (keyword) không
                             let matchKeyword = false;
 

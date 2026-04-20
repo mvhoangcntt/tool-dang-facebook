@@ -249,6 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // Engine core
 const btnStartEngine = document.getElementById('btn-start-engine');
 let isAutoRunning = false;
+let isInteractionLinked = false;
+let isFullAutoSequence = false;
 let isPublishing = false; // NgĒn ngừa chạy song song 2 bot
 
 // --- 1. Đ�ng h� thời gian thực ---
@@ -461,7 +463,7 @@ function renderTable() {
 
         const displayTarget = `[${item.profileName}] ` + (item.targetUrl || 'Mặc ��9nh');
 
-                tr.innerHTML = `
+        tr.innerHTML = `
             <td>${item.id}</td>
             <td><div class="truncate-text" title="${item.content}">${item.content}</div></td>
             <td>${item.video}</td>
@@ -559,6 +561,30 @@ async function checkScheduleQueue(now) {
         }
     }
 
+    if (isAutoRunning && isFullAutoSequence && !isPublishing && !isInteractionLinked) {
+        const hasPending = scheduleQueue.some(item => item.status === 'WAIT' || item.status === 'PROCESSING');
+        if (!hasPending) {
+            isInteractionLinked = true;
+            console.log("Danh sách đăng đã hoàn tất! Chuyển giao sang chế độ Tương Tác Dạo...");
+            const btnInter = document.getElementById('btn-start-interaction');
+            if (btnInter && !btnInter.classList.contains('hidden')) {
+               btnInter.click();
+            }
+
+            // Sync outer UI
+            const btnSEngine = document.getElementById('btn-start-engine');
+            if (btnSEngine) {
+                btnSEngine.textContent = "ĐANG TƯƠNG TÁC (CLICK ĐỂ DỪNG TOÀN BỘ)";
+            }
+            const btnPO = document.getElementById('btn-start-posting-only');
+            if (btnPO) {
+                btnPO.textContent = "BẮT ĐẦU ĐĂNG BÀI";
+                btnPO.classList.add('btn-primary');
+                btnPO.style.background = "";
+            }
+        }
+    }
+
     // KiỒm tra báo �ỏ các bài quá hạn nếu không bật chế ��" chạy auto
     profilesList.forEach(item => {
         if (item.status === 'WAIT' && !isAutoRunning) {
@@ -600,20 +626,93 @@ navItems.forEach(item => {
 
 
 // --- 10. Start Auto Engine ---
-if (btnStartEngine) {
-    btnStartEngine.addEventListener('click', () => {
-        isAutoRunning = !isAutoRunning;
+function updateEngineUI(running, isFull) {
+    isAutoRunning = running;
+    isFullAutoSequence = running ? isFull : false;
+    
+    const btnStartEngine = document.getElementById('btn-start-engine');
+    const btnStartPostingOnly = document.getElementById('btn-start-posting-only');
 
-        if (isAutoRunning) {
-            btnStartEngine.textContent = "ĐANG CHẠY AUTO (CLICK Đ� DỪNG)";
-            btnStartEngine.classList.remove('btn-primary');
-            btnStartEngine.style.background = "var(--danger)";
-            btnStartEngine.style.boxShadow = "0 4px 10px rgba(239, 68, 68, 0.4)";
+    if (isAutoRunning) {
+        isInteractionLinked = false;
+        if (isFull) {
+            // Chế độ gộp: Nút to ngoài đổi màu, nút nhỏ đứng yên
+            if (btnStartEngine) {
+                btnStartEngine.textContent = "ĐANG CHẠY AUTO (CLICK ĐỂ DỪNG)";
+                btnStartEngine.classList.remove('btn-primary');
+                btnStartEngine.style.background = "var(--danger)";
+                btnStartEngine.style.boxShadow = "0 4px 10px rgba(239, 68, 68, 0.4)";
+            }
+            if (btnStartPostingOnly) {
+                 btnStartPostingOnly.textContent = "BẮT ĐẦU ĐĂNG BÀI (Đang bận)";
+                 btnStartPostingOnly.classList.remove('btn-primary');
+                 btnStartPostingOnly.style.background = "";
+                 btnStartPostingOnly.style.color = "var(--success)";
+                 btnStartPostingOnly.disabled = true;
+                 btnStartPostingOnly.style.opacity = "0.5";
+            }
         } else {
+            // Chế độ đăng đơn lẻ: Nút nhỏ đổi màu, nút to kệ nó
+            if (btnStartEngine) {
+                btnStartEngine.textContent = "BẮT ĐẦU CHẠY AUTO (Đang bận)";
+                btnStartEngine.classList.add('btn-primary');
+                btnStartEngine.style.background = "";
+                btnStartEngine.style.boxShadow = "";
+                btnStartEngine.disabled = true;
+                btnStartEngine.style.opacity = "0.5";
+            }
+            if (btnStartPostingOnly) {
+                 btnStartPostingOnly.textContent = "ĐANG ĐĂNG BÀI (CLICK ĐỂ DỪNG)";
+                 btnStartPostingOnly.classList.remove('btn-primary');
+                 btnStartPostingOnly.style.background = "var(--danger)";
+                 btnStartPostingOnly.style.color = "white";
+                 btnStartPostingOnly.disabled = false;
+                 btnStartPostingOnly.style.opacity = "1";
+            }
+        }
+    } else {
+        // Tắt toàn bộ hệ thống
+        if (btnStartEngine) {
+            isInteractionLinked = false;
             btnStartEngine.textContent = "BẮT ĐẦU CHẠY AUTO";
             btnStartEngine.classList.add('btn-primary');
             btnStartEngine.style.background = "";
             btnStartEngine.style.boxShadow = "";
+            btnStartEngine.disabled = false;
+            btnStartEngine.style.opacity = "1";
+        }
+        if (btnStartPostingOnly) {
+             btnStartPostingOnly.textContent = "BẮT ĐẦU ĐĂNG BÀI";
+             btnStartPostingOnly.classList.add('btn-primary');
+             btnStartPostingOnly.style.background = "";
+             btnStartPostingOnly.style.color = "white";
+             btnStartPostingOnly.disabled = false;
+             btnStartPostingOnly.style.opacity = "1";
+        }
+    }
+}
+
+if (btnStartEngine) {
+    btnStartEngine.addEventListener('click', () => {
+        const turnOn = !isAutoRunning;
+        updateEngineUI(turnOn, true);
+        if (!turnOn) {
+            // Tắt luôn interaction ngầm nếu đang chạy
+            const btnStopInter = document.getElementById('btn-stop-interaction');
+            if (btnStopInter && !btnStopInter.classList.contains('hidden')) {
+                 btnStopInter.click();
+            }
+        }
+    });
+}
+const btnStartPostingOnlyId = document.getElementById('btn-start-posting-only');
+if (btnStartPostingOnlyId) {
+    btnStartPostingOnlyId.addEventListener('click', () => {
+        const turnOn = !isAutoRunning;
+        updateEngineUI(turnOn, false);
+        if (!turnOn) {
+            const btnStopInter = document.getElementById('btn-stop-interaction');
+            if (btnStopInter && !btnStopInter.classList.contains('hidden')) btnStopInter.click();
         }
     });
 }
@@ -738,3 +837,158 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+
+
+// --- MỚI: QUẢN LÝ GIAO DIỆN GEMINI API KEY NÂNG CAO ---
+const apiKeysWrapper = document.getElementById('gemini-keys-wrapper');
+const btnAddKeyRow = document.getElementById('btn-add-gemini-key');
+const btnCheckApiKeys = document.getElementById('btn-check-api-keys');
+const rawApiTextArea = document.getElementById('api-gemini-key');
+
+if (apiKeysWrapper && rawApiTextArea) {
+    function renderKeyRows() {
+        // Fallback an toàn cho lần load đầu
+        const lines = rawApiTextArea.value.split('\n').map(l => l.trim()).filter(l => l !== '');
+        if (lines.length === 0) lines.push(''); // Ít nhất 1 ô trống
+
+        apiKeysWrapper.innerHTML = '';
+        lines.forEach(key => {
+            appendKeyRow(key);
+        });
+    }
+
+    function appendKeyRow(keyValue) {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '10px';
+
+        const dot = document.createElement('div');
+        dot.style.width = '12px';
+        dot.style.height = '12px';
+        dot.style.borderRadius = '50%';
+        dot.style.background = 'gray';
+        dot.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
+        dot.style.transition = 'all 0.3s ease';
+        dot.className = 'api-status-dot';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = keyValue;
+        input.placeholder = 'Nhập Gemini API Key...';
+        input.style.flex = '1';
+        input.style.fontFamily = 'monospace';
+        input.style.webkitTextSecurity = "disc";
+        input.style.padding = "5px 10px";
+        input.style.background = "var(--bg-dark)";
+        input.style.border = "1px solid var(--border)";
+        input.style.color = "var(--text)";
+        input.className = 'api-key-input-row';
+
+        const percentText = document.createElement('span');
+        percentText.textContent = '-- %';
+        percentText.style.color = '#ffeb3b';
+        percentText.style.fontSize = '13px';
+        percentText.style.whiteSpace = 'nowrap';
+        percentText.style.width = '65px';
+        percentText.style.textAlign = 'right';
+        percentText.className = 'api-percent-label';
+
+        const btnDel = document.createElement('button');
+        btnDel.textContent = 'X';
+        btnDel.style.background = 'transparent';
+        btnDel.style.color = 'var(--danger)';
+        btnDel.style.border = 'none';
+        btnDel.style.cursor = 'pointer';
+        btnDel.style.fontWeight = 'bold';
+        btnDel.style.padding = '0 5px';
+
+        btnDel.onclick = () => {
+            row.remove();
+            syncToTextArea();
+        };
+
+        input.oninput = () => {
+            dot.style.background = 'gray'; // Reset về chưa check
+            dot.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
+            percentText.textContent = '-- %';
+            percentText.style.color = '#ffeb3b';
+            syncToTextArea();
+        };
+
+        row.appendChild(dot);
+        row.appendChild(input);
+        row.appendChild(percentText);
+        row.appendChild(btnDel);
+        apiKeysWrapper.appendChild(row);
+    }
+
+    function syncToTextArea() {
+        const inputs = Array.from(apiKeysWrapper.querySelectorAll('.api-key-input-row'));
+        const lines = inputs.map(inp => inp.value.trim()).filter(v => v !== '');
+        rawApiTextArea.value = lines.join('\n');
+        // Kích hoạt luôn sự kiện input nội bộ của thẻ textarea để store.js save
+        rawApiTextArea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    if (btnAddKeyRow) {
+        btnAddKeyRow.onclick = () => {
+            appendKeyRow('');
+            syncToTextArea();
+            apiKeysWrapper.scrollTop = apiKeysWrapper.scrollHeight;
+        };
+    }
+
+    if (btnCheckApiKeys) {
+        btnCheckApiKeys.onclick = async () => {
+            const rows = Array.from(apiKeysWrapper.children);
+            let hasChecked = false;
+            for (let row of rows) {
+                const inp = row.querySelector('.api-key-input-row');
+                const dot = row.querySelector('.api-status-dot');
+                const lbl = row.querySelector('.api-percent-label');
+                const key = inp.value.trim();
+
+                if (!key) continue;
+                lbl.textContent = 'Đang check...';
+                lbl.style.color = 'cyan';
+                hasChecked = true;
+
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({contents: [{parts: [{text: "1"}]}]})
+                    });
+                    
+                    if (res.ok) {
+                        dot.style.background = '#f44336'; // Hoạt động = CHẤM ĐỎ NGẦU (Tuyệt đối theo Y/C user)
+                        dot.style.boxShadow = '0 0 10px #f44336';
+                        lbl.textContent = '0% (Tốt)';
+                        lbl.style.color = '#f44336';
+                    } else {
+                        const data = await res.json();
+                        dot.style.background = '#e91e63'; // Sập = CHẤM HỒNG (Theo y/c user)
+                        dot.style.boxShadow = '0 0 10px #e91e63';
+                        lbl.textContent = '100% (Sập)';
+                        lbl.style.color = '#e91e63';
+                    }
+                } catch (e) {
+                    dot.style.background = '#e91e63';
+                    dot.style.boxShadow = '0 0 10px #e91e63';
+                    lbl.textContent = 'Lỗi Mạng';
+                    lbl.style.color = '#e91e63';
+                }
+            }
+            if (!hasChecked) {
+                alert("Vui lòng điền ít nhất 1 Key để kiểm tra!");
+            }
+        };
+    }
+
+    // Đợi tí cho config.json nạp xog thì ms render
+    setTimeout(() => {
+        renderKeyRows();
+    }, 1000);
+}

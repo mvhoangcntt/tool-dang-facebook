@@ -449,26 +449,26 @@ function renderTable() {
         if (item.status === 'ERROR') tr.classList.add('row-error');
 
         let statusHtml = '';
-        if (item.status === 'WAIT') statusHtml = `<span class="status-wait">Đang chờ �Ēng</span>`;
-        if (item.status === 'PROCESSING') statusHtml = `<span style="color:var(--primary); font-weight:bold;">Đang �iều khiỒn Bot...</span>`;
+        if (item.status === 'WAIT') statusHtml = `<span class="status-wait">Đang chờ đăng</span>`;
+        if (item.status === 'PROCESSING') statusHtml = `<span style="color:var(--primary); font-weight:bold;">Đang điều khiển Bot...</span>`;
         if (item.status === 'ERROR') statusHtml = `<span class="status-error">Quá thời gian (Need Push)</span>`;
-        if (item.status === 'POSTED') statusHtml = `<span style="color:var(--success)">Đã �Ēng thành công</span>`;
+        if (item.status === 'POSTED') statusHtml = `<span style="color:var(--success)">Đã đăng thành công</span>`;
 
-        // ChuyỒn timestamp sang ��9nh dạng YYYY-MM-DDThh:mm chuẩn cho input HTML5
+        // Chuyển timestamp sang định dạng YYYY-MM-DDThh:mm chuẩn cho input HTML5
         const dateObj = new Date(item.timestamp);
         const tzOffset = dateObj.getTimezoneOffset() * 60000;
         const localISOTime = (new Date(dateObj - tzOffset)).toISOString().slice(0, 16);
 
         const displayTarget = `[${item.profileName}] ` + (item.targetUrl || 'Mặc ��9nh');
 
-        tr.innerHTML = `
+                tr.innerHTML = `
             <td>${item.id}</td>
             <td><div class="truncate-text" title="${item.content}">${item.content}</div></td>
             <td>${item.video}</td>
             <td><div class="truncate-text" title="${item.comment || ''}">${item.comment || ''}</div></td>
             <td><div class="truncate-text" style="color:var(--primary); font-size: 0.8rem;" title="${displayTarget}">${displayTarget}</div></td>
             <td>
-                <input type="datetime-local" class="time-edit-input" data-id="${item.id}" value="${localISOTime}" style="background:var(--bg-dark); color:white; border:1px solid var(--border); padding:6px; border-radius:4px; font-family:inherit; width: 130px;">
+                <input type="datetime-local" class="time-edit-input" data-id="${item.id}" value="${localISOTime}" style="background:var(--bg-dark); color:white; border:1px solid var(--border); padding:6px; border-radius:4px; font-family:inherit; width: 100%; min-width: 175px;">
             </td>
             <td class="status-cell">${statusHtml}</td>
             <td>

@@ -1,0 +1,21 @@
+{
+  "name": "auto-facebook-poster",
+  "version": "1.0.0",
+  "description": "Auto posting tool for Facebook",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^41.2.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "electron-store": "^8.1.0",
+    "moment": "^2.30.1",
+    "playwright": "^1.59.1",
+    "xlsx": "^0.18.5"
+  }
+}

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Auto Publisher Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/css/styles.css">
+    <!-- Th� vi�n SheetJS �c excel t� frontend -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo">FB</div>
+                <h1>Publisher Pro</h1>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-target="view-schedule">Lên Lịch Đăng</a>
+                <a href="#" class="nav-item" data-target="view-profiles">Quản Lý Profile</a>
+                <a href="#" class="nav-item" data-target="view-settings">Cài Đặt Tương Tác</a>
+            </nav>
+            <div class="system-status">
+                <div class="clock" id="realtime-clock">--:--:--</div>
+                <div class="status-indicator">
+                    <span class="dot pulse-green"></span> Hệ thống sẵn sàng
+                </div>
+            </div>
+            
+            <button id="btn-start-engine" class="btn btn-primary pulse-btn">BẮT ĐẦU CHẠY AUTO</button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- View: L�n l�ch ng -->
+            <div id="view-schedule" class="view-section">
+            <!-- Top Dashboard: Input -->
+            <section class="dashboard-cards">
+                <div class="card card-input">
+                    <h2 class="card-title">1. Nhập Nội Dung (Content)</h2>
+                    <div class="input-tabs">
+                        <button class="tab-btn active" data-tab="paste">Dán Text</button>
+                        <button class="tab-btn" data-tab="file">File (TXT/Excel)</button>
+                    </div>
+                    <div class="tab-content" id="tab-paste">
+                        <textarea id="content-paste" placeholder="Dán nội dung vào đây. Mỗi bài ngăn cách bằng 2 dòng trống..."></textarea>
+                    </div>
+                    <div class="tab-content hidden" id="tab-file">
+                        <div class="file-drop-area">
+                            <input type="file" id="content-file-picker" accept=".txt, .xlsx, .xls">
+                            <p>Kéo thả hoặc dán file Text / Excel vào đây</p>
+                            <span class="file-name" id="content-file-name">Chưa chọn file</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary mt-10" id="btn-parse-content">Phân Tích Content</button>
+                </div>
+
+                <div class="card card-input">
+                    <h2 class="card-title">2. Chọn Video</h2>
+                    <div class="video-picker-area">
+                        <button class="btn btn-outline" id="btn-select-video-dir">Chọn thư mục Video</button>
+                        <p class="dir-path" id="video-dir-path">Chưa chọn thư mục</p>
+                        <div class="stat-badge">Tìm thấy: <strong id="video-count">0</strong> videos</div>
+                    </div>
+                    
+                    <h2 class="card-title mt-20">3. Cấu hình thời gian đăng</h2>
+                    <div class="config-grid">
+                        <div class="input-group">
+                            <label>Số bài đăng / Ngày</label>
+                            <input type="number" id="posts-per-day" min="1" value="2">
+                        </div>
+                        <div class="input-group">
+                            <label>Giờ đăng mốc</label>
+                            <input type="time" id="start-time" value="08:00">
+                        </div>
+                    </div>
+                    <div class="second-post-time hidden" id="second-post-container">
+                        <div class="input-group">
+                            <label>Giờ đăng mốc Bài 2</label>
+                            <input type="time" id="second-time" value="15:00">
+                        </div>
+                    </div>
+                    <div class="input-group mt-10 checkbox-group">
+                        <input type="checkbox" id="random-time">
+                        <label for="random-time">Random lệch giờ trong phạm vi 1 tiếng</label>
+                    </div>
+
+                    <h2 class="card-title mt-20">4. Comment bài đăng</h2>
+                    <div class="input-group">
+                        <textarea id="comment-paste" placeholder="Nhập comment sau khi đăng (Mỗi bài tương ứng 1 dòng)..." style="width: 100%; height: 80px; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-light); padding: 10px; border-radius: 6px; font-family: inherit; margin-top: 5px; resize: vertical;"></textarea>
+                    </div>
+                    
+                    <button class="btn btn-secondary mt-10 w-full" id="btn-generate-schedule">Gán Lịch & Ghép Video</button>
+                </div>
+            </section>
+
+            <!-- Table View -->
+            <section class="card table-card mt-20">
+                <div class="card-header">
+                    <h2 class="card-title">Danh sách bài chuẩn bị lên sóng</h2>
+                    <span class="badge" id="queue-badge">0 Bài viết</span>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th width="5%">STT</th>
+                                <th width="15%">Nội Dung</th>
+                                <th width="12%">Video</th>
+                                <th width="15%">Comment</th>
+                                <th width="15%">Link Đăng</th>
+                                <th width="14%">Thời Gian</th>
+                                <th width="14%">Trạng Thái Auto</th>
+                                <th width="10%">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-tbody">
+                            <tr class="empty-row">
+                                <td colspan="7">Chưa có dữ liệu. Hãy nhập Content, chọn Thư mục Video và Bấm Tạo Lịch.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            </div><!-- End View Schedule -->
+
+            <!-- View: Qu�n l� Profile -->
+            <div id="view-profiles" class="view-section hidden">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+                    
+                    <section class="card" style="margin: 0; display: flex; flex-direction: column; max-height: calc(100vh - 100px);">
+                        <h2 class="card-title">Quản Lý Đa Profile & Nơi Đăng</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.95rem; line-height: 1.6;">
+                            Tạo nhiều Profile ảo để chứa phiên đăng nhập. Mỗi Profile sẽ được gán với một danh sách các Fanpage/Group đích. Hệ thống sẽ tự động ghép content và chạy lần lượt từ Profile này sang Profile khác.
+                        </p>
+                        
+                        <!-- V�ng danh s�ch Profile � l�u -->
+                        <div id="profiles-list-container" style="display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-right: 5px; flex-grow: 1;">
+                            <!-- C�c Profile Render B�ng JS -->
+                        </div>
+                    </section>
+
+                    <section class="card" style="margin: 0; background: var(--bg-dark); border: 1px dashed var(--border);">
+                        <h3 id="form-profile-title" style="margin-bottom: 15px; color: var(--primary);">Thêm Profile Mới</h3>
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <input type="hidden" id="edit-profile-id" value="">
+                            
+                            <div class="input-group">
+                                <label>Tên Thư Mục Profile (Vd: Profile_1, Nick_Chinh,...)</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="input-profile-name" placeholder="Tên Profile viết liền không dấu..." style="flex: 1;">
+                                    <button class="btn btn-outline" id="btn-open-profile" style="white-space: nowrap;">Mở Trình Duyệt Để Đăng Nhập</button>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label>Danh Sách Nơi Đăng của Profile này (Fanpage/Group)</label>
+                                <p style="color: var(--text-muted); margin-bottom: 10px; font-size: 0.85rem;">Mỗi dòng 1 link URL. Cả Lên lịch đăng Video và Tương tác dạo AI đều sẽ chạy qua danh sách này.</p>
+                                <textarea id="target-links" placeholder="https://www.facebook.com/fanpage1&#10;https://www.facebook.com/fanpage2" style="height: 150px;"></textarea>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <button class="btn btn-secondary hidden" id="btn-cancel-edit-profile">Hủy Sửa</button>
+                                <button class="btn btn-primary" id="btn-save-profile">Lưu Lại Profile</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- View: C�i �t t��ng t�c -->
+            <div id="view-settings" class="view-section hidden">
+                <section class="card">
+                    <h2 class="card-title">Cài Đặt Tương Tác Dạo (Seeding AI)</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.95rem;">
+                        Bot sẽ tự động lướt trang, lọc bài viết theo từ khoá, xem video và dùng AI để bình luận một cách tự nhiên.
+                    </p>
+
+                    <div class="config-grid">
+                        <div class="input-group" style="grid-column: 1 / -1;">
+                            <label style="display: flex; align-items: center; justify-content: space-between;">
+                                <span>Gemini API Key (Hỗ trợ nhập nhiều Key trên nhiều dòng)</span>
+                                <div>
+                                    <span id="toggle-api-visibility" style="cursor: pointer; color: #007bff; font-size: 13px; margin-left: 10px; font-weight: normal; user-select: none;">[👁 Hiển thị / Ẩn Key]</span>
+                                    <span id="toggle-api-size" style="cursor: pointer; color: #007bff; font-size: 13px; margin-left: 10px; font-weight: normal; user-select: none;">[↕ Thu nhỏ / Mở rộng]</span>
+                                </div>
+                            </label>
+                            <textarea id="api-gemini-key" placeholder="Nhập mỗi API Key trên một dòng...\nKey 1...\nKey 2..." rows="3" style="width: 100%; font-family: monospace; resize: vertical; -webkit-text-security: disc; min-height: 70px; max-height: 500px; transition: height 0.3s;"></textarea>
+                        </div>
+
+                        <div class="input-group" style="grid-column: 1 / -1;">
+                            <label>Từ khoá lọc bài (Cách nhau bằng dấu phẩy)</label>
+                            <input type="text" id="interaction-keywords" placeholder="Ví dụ: thời trang, quần áo, sale, váy, đầm..." style="width: 100%;">
+                        </div>
+
+                        <div class="input-group" style="grid-column: 1 / -1; display: none;">
+                            <label>Danh sách Link đi Tương Tác</label>
+                            <textarea id="interaction-links" style="height: 10px;"></textarea>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Thời gian dạo 1 trang (Phút)</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="number" id="time-min" value="15" min="1" style="width: 80px;"> 
+                                <span>-</span>
+                                <input type="number" id="time-max" value="30" min="1" style="width: 80px;">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Số bài Random Cmt 1 trang</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="number" id="posts-min" value="3" min="1" style="width: 80px;"> 
+                                <span>-</span>
+                                <input type="number" id="posts-max" value="5" min="1" style="width: 80px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                        <div style="display: flex; gap: 10px;">
+                            <button id="btn-start-interaction" class="btn btn-primary" style="flex: 1; height: 50px; font-size: 1.1rem;">BẮT ĐẦU TƯƠNG TÁC</button>
+                            <button id="btn-pause-interaction" class="btn btn-secondary hidden" style="flex: 1; height: 50px; font-size: 1.1rem; background: var(--warning); color: #000; border: none;">TẠM DỪNG</button>
+                            <button id="btn-stop-interaction" class="btn btn-secondary hidden" style="flex: 1; height: 50px; font-size: 1.1rem; border-color: var(--danger); color: var(--danger);">DỪNG HẲN</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4 style="margin-bottom: 10px; color: var(--text);">Tiến độ Tương tác dạo</h4>
+                        <div id="interaction-profile-status-grid" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 50px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Terminal Log Overlay -->
+    <div id="live-terminal" style="position: fixed; bottom: 20px; right: 20px; width: 450px; height: 250px; background: rgba(10, 15, 20, 0.95); background-blend-mode: multiply; border: 1px solid var(--primary); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; z-index: 10000; overflow: hidden; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; backdrop-filter: blur(10px);">
+        <div style="background: var(--primary); color: #fff; padding: 5px 10px; font-weight: bold; font-family: 'Inter', sans-serif; display: flex; justify-content: space-between; align-items: center; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+            <span style="font-size: 13px; font-weight: 600;">> BOT TERMINAL LOG</span>
+            <div>
+                 <button onclick="document.getElementById('live-terminal-content').innerHTML='';" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 12px; margin-right: 10px;">Xóa</button>
+                 <button onclick="document.getElementById('live-terminal').classList.toggle('minimized');" style="background: none; border: none; color: #fff; cursor: pointer; font-weight: bold;">_</button>
+            </div>
+        </div>
+        <div id="live-terminal-content" style="flex: 1; overflow-y: auto; padding: 10px; color: #0f0; word-wrap: break-word; white-space: pre-wrap; line-height: 1.4;">
+            <div style="color: #666;">> System Ready. Waiting for Bot logs...</div>
+        </div>
+        <style>
+            #live-terminal.minimized {
+                height: 30px !important;
+                overflow: hidden !important;
+            }
+        </style>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./assets/js/renderer.js"></script>
+</body>
+</html>

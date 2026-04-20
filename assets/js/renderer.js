@@ -91,7 +91,7 @@ function renderProfilesList() {
             try {
                 await window.api.openProfile(p.profileName);
             } catch (err) {
-                alert("Th�ng b�o");
+                alert("Tương tác thành công/lỗi!");
             }
             e.target.disabled = false;
             e.target.textContent = orgText;
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pLinks = document.getElementById('target-links').value.trim();
             const editId = document.getElementById('edit-profile-id').value;
 
-            if (!pName || pName === '') return alert("Th�ng b�o");
+            if (!pName || pName === '') return alert("Tương tác thành công/lỗi!");
 
             const newProfileObj = {
                 profileName: pName,
@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await window.api.openProfile(profileName);
             } catch (err) {
-                alert("Th�ng b�o");
+                alert("Tương tác thành công/lỗi!");
             }
             btnOpenProfile.disabled = false;
             btnOpenProfile.textContent = originalText;
@@ -288,20 +288,20 @@ btnParseContent.addEventListener('click', async () => {
 
     if (activeTab === 'paste') {
         const text = txtPaste.value.trim();
-        if (!text) return alert("Th�ng b�o");
+        if (!text) return alert("Vui lòng dán Nội dung (Content) trước!");
 
         // Tách bằng 2 dòng tr�ng
         contentsList = text.split(/\n\s*\n/).filter(t => t.trim() !== '');
-        alert("Th�ng b�o");
+        alert("Đã phân tích và tách thành công " + contentsList.length + " bài đăng!");
     } else {
         // Parse Excel/TXT file (if implemented via FileReader)
-        if (!fileInput.files.length) return alert("Th�ng b�o");
+        if (!fileInput.files.length) return alert("Vui lòng chọn File chứa Nội dung (Content) trước!");
         const file = fileInput.files[0];
 
         if (file.name.endsWith('.txt')) {
             const text = await file.text();
             contentsList = text.split(/\n\s*\n/).filter(t => t.trim() !== '');
-            alert("Th�ng b�o");
+            alert("Đã phân tích File TXT và tách thành công " + contentsList.length + " bài đăng!");
         } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
@@ -310,7 +310,7 @@ btnParseContent.addEventListener('click', async () => {
 
             // M�i dòng là 1 content (bỏ dòng trắng)
             contentsList = json.map(row => row[0]).filter(cel => cel && cel.toString().trim() !== "");
-            alert("Th�ng b�o");
+            alert("Đã tách File Excel thành công " + contentsList.length + " bài đăng!");
         }
     }
 });
@@ -328,7 +328,7 @@ btnSelectVideo.addEventListener('click', async () => {
         txtDirPath.textContent = "Thư mục: " + dirPath;
         const videos = await window.api.readVideos(dirPath);
         if (videos.error) {
-            alert("Th�ng b�o");
+            alert("Lỗi đọc Thư mục Video: " + videos.error);
             return;
         }
         videosList = videos;
@@ -338,8 +338,8 @@ btnSelectVideo.addEventListener('click', async () => {
 
 // --- 5. Lên trình (Tự ghép kh�i Video - Content) ---
 btnGenerate.addEventListener('click', () => {
-    if (contentsList.length === 0) return alert("Th�ng b�o");
-    if (videosList.length === 0) return alert("Th�ng b�o");
+    if (contentsList.length === 0) return alert("Chưa có Content! Vui lòng ấn Phân Tích Content.");
+    if (videosList.length === 0) return alert("Chưa có Video! Vui lòng ấn Chọn Thư mục Video.");
 
     // Ghép s� lượng min (Giữa content và video)
     const matchCount = Math.min(contentsList.length, videosList.length);
@@ -992,3 +992,4 @@ if (apiKeysWrapper && rawApiTextArea) {
         renderKeyRows();
     }, 1000);
 }
+

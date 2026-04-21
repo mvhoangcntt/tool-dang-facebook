@@ -916,7 +916,6 @@ class FacebookAutoBot {
                             if (!matchKeyword) {
                                 console.log(">> Cảnh báo: Video không trúng chủ đề/keyword của bạn. Lập tức cuộn chuột bỏ qua ngay chứ không xem!");
 
-                                await this.page.keyboard.press('Escape');
                                 await this.page.evaluate(() => { if (document.activeElement) document.activeElement.blur(); });
                                 await this.page.mouse.move(500, 500);
                                 await this.page.mouse.wheel(0, 3000);
@@ -1104,10 +1103,8 @@ class FacebookAutoBot {
                             // Chuyển sang video tiếp theo
                             console.log("Chuyển sang video kế tiếp...");
 
-                            // Xả Focus: Tắt mọi Popup Share hoặc Bảng Comment đang vướng bằng cách gõ phím Esc nhiều lần
-                            await this.page.keyboard.press('Escape');
-                            await this._checkStateAndDelay(this.page, 200);
-                            await this.page.keyboard.press('Escape');
+                            // Xả Focus bằng JavaScript thay vì gõ phím Esc để không làm văng khỏi chế độ Reel Feed
+                            await this.page.evaluate(() => { if (document.activeElement) document.activeElement.blur(); });
                             await this._checkStateAndDelay(this.page, 500);
 
                             // Hủy Focus hoàn toàn để ArrowDown có tác dụng lên trang chứ không phải lên Input

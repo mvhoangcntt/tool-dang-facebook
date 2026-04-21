@@ -1,4 +1,4 @@
-// --- Biến toàn cục (Global state) ---
+﻿// --- Biến toàn cục (Global state) ---
 let contentsList = [];
 let videosList = [];
 let scheduleQueue = [];
@@ -568,7 +568,7 @@ async function checkScheduleQueue(now) {
             console.log("Danh sách đăng đã hoàn tất! Chuyển giao sang chế độ Tương Tác Dạo...");
             const btnInter = document.getElementById('btn-start-interaction');
             if (btnInter && !btnInter.classList.contains('hidden')) {
-               btnInter.click();
+                btnInter.click();
             }
 
             // Sync outer UI
@@ -629,7 +629,7 @@ navItems.forEach(item => {
 function updateEngineUI(running, isFull) {
     isAutoRunning = running;
     isFullAutoSequence = running ? isFull : false;
-    
+
     const btnStartEngine = document.getElementById('btn-start-engine');
     const btnStartPostingOnly = document.getElementById('btn-start-posting-only');
 
@@ -644,12 +644,12 @@ function updateEngineUI(running, isFull) {
                 btnStartEngine.style.boxShadow = "0 4px 10px rgba(239, 68, 68, 0.4)";
             }
             if (btnStartPostingOnly) {
-                 btnStartPostingOnly.textContent = "BẮT ĐẦU ĐĂNG BÀI (Đang bận)";
-                 btnStartPostingOnly.classList.remove('btn-primary');
-                 btnStartPostingOnly.style.background = "";
-                 btnStartPostingOnly.style.color = "var(--success)";
-                 btnStartPostingOnly.disabled = true;
-                 btnStartPostingOnly.style.opacity = "0.5";
+                btnStartPostingOnly.textContent = "BẮT ĐẦU ĐĂNG BÀI (Đang bận)";
+                btnStartPostingOnly.classList.remove('btn-primary');
+                btnStartPostingOnly.style.background = "";
+                btnStartPostingOnly.style.color = "var(--success)";
+                btnStartPostingOnly.disabled = true;
+                btnStartPostingOnly.style.opacity = "0.5";
             }
         } else {
             // Chế độ đăng đơn lẻ: Nút nhỏ đổi màu, nút to kệ nó
@@ -662,12 +662,12 @@ function updateEngineUI(running, isFull) {
                 btnStartEngine.style.opacity = "0.5";
             }
             if (btnStartPostingOnly) {
-                 btnStartPostingOnly.textContent = "ĐANG ĐĂNG BÀI (CLICK ĐỂ DỪNG)";
-                 btnStartPostingOnly.classList.remove('btn-primary');
-                 btnStartPostingOnly.style.background = "var(--danger)";
-                 btnStartPostingOnly.style.color = "white";
-                 btnStartPostingOnly.disabled = false;
-                 btnStartPostingOnly.style.opacity = "1";
+                btnStartPostingOnly.textContent = "ĐANG ĐĂNG BÀI (CLICK ĐỂ DỪNG)";
+                btnStartPostingOnly.classList.remove('btn-primary');
+                btnStartPostingOnly.style.background = "var(--danger)";
+                btnStartPostingOnly.style.color = "white";
+                btnStartPostingOnly.disabled = false;
+                btnStartPostingOnly.style.opacity = "1";
             }
         }
     } else {
@@ -682,12 +682,12 @@ function updateEngineUI(running, isFull) {
             btnStartEngine.style.opacity = "1";
         }
         if (btnStartPostingOnly) {
-             btnStartPostingOnly.textContent = "BẮT ĐẦU ĐĂNG BÀI";
-             btnStartPostingOnly.classList.add('btn-primary');
-             btnStartPostingOnly.style.background = "";
-             btnStartPostingOnly.style.color = "white";
-             btnStartPostingOnly.disabled = false;
-             btnStartPostingOnly.style.opacity = "1";
+            btnStartPostingOnly.textContent = "BẮT ĐẦU ĐĂNG BÀI";
+            btnStartPostingOnly.classList.add('btn-primary');
+            btnStartPostingOnly.style.background = "";
+            btnStartPostingOnly.style.color = "white";
+            btnStartPostingOnly.disabled = false;
+            btnStartPostingOnly.style.opacity = "1";
         }
     }
 }
@@ -700,7 +700,7 @@ if (btnStartEngine) {
             // Tắt luôn interaction ngầm nếu đang chạy
             const btnStopInter = document.getElementById('btn-stop-interaction');
             if (btnStopInter && !btnStopInter.classList.contains('hidden')) {
-                 btnStopInter.click();
+                btnStopInter.click();
             }
         }
     });
@@ -958,10 +958,10 @@ if (apiKeysWrapper && rawApiTextArea) {
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({contents: [{parts: [{text: "1"}]}]})
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: "1" }] }] })
                     });
-                    
+
                     if (res.ok) {
                         dot.style.background = '#f44336'; // Hoạt động = CHẤM ĐỎ NGẦU (Tuyệt đối theo Y/C user)
                         dot.style.boxShadow = '0 0 10px #f44336';
